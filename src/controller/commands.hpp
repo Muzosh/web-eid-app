@@ -31,7 +31,7 @@ class CommandType
 {
 public:
     enum CommandTypeEnum {
-        INSERT_CARD,
+        INSERT_EID_CONTAINER,
         GET_SIGNING_CERTIFICATE,
         AUTHENTICATE,
         SIGN,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2023 Estonian Information System Authority
+ * Copyright (c) 2020-2022 Estonian Information System Authority
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,35 +24,37 @@
 
 #include "controllerchildthread.hpp"
 
-class WaitForCardThread : public ControllerChildThread
+class WaitForEidContainerThread : public ControllerChildThread
 {
     Q_OBJECT
 
 public:
-    explicit WaitForCardThread(QObject* parent) : ControllerChildThread(parent) {}
+    explicit WaitForEidContainerThread(QObject* parent) : ControllerChildThread(parent) {}
 
 signals:
-    void cardsAvailable(const std::vector<electronic_id::CardInfo::ptr>& cardInfo);
+    void eidContainersAvailable(
+        const std::vector<electronic_id::EidContainerInfo::ptr>& eidContainerInfo);
     void statusUpdate(const RetriableError status);
 
 private:
     void doRun() override
     {
-        while (!attemptCardSelection() && !isInterruptionRequested()) {
+        while (!attemptEidContainerSelection() && !isInterruptionRequested()) {
             waitForControllerNotify.wait(&controllerChildThreadMutex, ONE_SECOND);
         }
     }
 
-    bool attemptCardSelection()
+    bool attemptEidContainerSelection()
     {
         try {
-            const auto availableCardInfos = electronic_id::availableSupportedCards();
+            const auto availableEidContainerInfos =
+                electronic_id::availableSupportedEidContainers();
 
-            if (!availableCardInfos.empty()) {
-                emit cardsAvailable(availableCardInfos);
+            if (!availableEidContainerInfos.empty()) {
+                emit eidContainersAvailable(availableEidContainerInfos);
             } else {
                 // This should never happen.
-                emit failure(QString(__func__) + ": empty available supported card list");
+                emit failure(QString(__func__) + ": empty available supported eid container list");
             }
         } catch (const electronic_id::AutoSelectFailed& failure) {
             emit statusUpdate(toRetriableError(failure.reason()));
@@ -76,7 +78,7 @@ private:
 
     const std::string& commandType() const override
     {
-        static const std::string cmdType = CommandType(CommandType::INSERT_CARD);
+        static const std::string cmdType = CommandType(CommandType::INSERT_EID_CONTAINER);
         return cmdType;
     }
 };

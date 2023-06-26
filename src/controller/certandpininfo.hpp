@@ -51,13 +51,13 @@ struct PinInfo
     static constexpr int PIN_PAD_PIN_ENTRY_TIMEOUT = pcsc_cpp::PIN_PAD_PIN_ENTRY_TIMEOUT;
 };
 
-struct CardCertificateAndPinInfo
+struct EidContainerCertificateAndPinInfo
 {
-    electronic_id::CardInfo::ptr cardInfo;
+    electronic_id::EidContainerInfo::ptr eidContainerInfo;
     QByteArray certificateBytesInDer;
     QSslCertificate certificate {};
     CertificateInfo certInfo;
     PinInfo pinInfo;
 };
 
-Q_DECLARE_METATYPE(CardCertificateAndPinInfo)
+Q_DECLARE_METATYPE(EidContainerCertificateAndPinInfo)

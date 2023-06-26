@@ -32,5 +32,5 @@ public:
     GetCertificate(const CommandWithArguments& cmd);
 
     QVariantMap onConfirm(WebEidUI* window,
-                          const CardCertificateAndPinInfo& cardCertAndPin) override;
+                          const EidContainerCertificateAndPinInfo& eidContainerCertAndPin) override;
 };

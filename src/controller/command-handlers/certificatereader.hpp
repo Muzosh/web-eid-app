@@ -32,13 +32,12 @@ class CertificateReader : public CommandHandler
 
 public:
     explicit CertificateReader(const CommandWithArguments& cmd);
-
-    void run(const std::vector<electronic_id::CardInfo::ptr>& cards) override;
+    void run(const std::vector<electronic_id::EidContainerInfo::ptr>& eidContainers) override;
     void connectSignals(const WebEidUI* window) override;
 
 protected:
-    virtual void
-    emitCertificatesReady(const std::vector<CardCertificateAndPinInfo>& cardCertAndPinInfos);
+    virtual void emitCertificatesReady(
+        const std::vector<EidContainerCertificateAndPinInfo>& eidContainerCertAndPinInfos);
     void validateAndStoreOrigin(const QVariantMap& arguments);
 
     electronic_id::CertificateType certificateType = electronic_id::CertificateType::NONE;

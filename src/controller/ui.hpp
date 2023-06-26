@@ -46,24 +46,26 @@ public:
     static void showAboutPage();
     static void showFatalError();
 
-    virtual void showWaitingForCardPage(const CommandType commandType) = 0;
+    virtual void showWaitingForEidContainerPage(const CommandType commandType) = 0;
 
     // getPin() is called from background threads and must be thread-safe.
     virtual QString getPin() = 0;
 
 signals:
-    void waitingForPinPad(const CardCertificateAndPinInfo& cardCertAndPinInfo);
-    void accepted(const CardCertificateAndPinInfo& cardCertAndPinInfo);
+    void waitingForPinPad(const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo);
+    void accepted(const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo);
     void retry();
     void failure(const QString& error);
 
 public: // slots
     virtual void quit() = 0;
-    virtual void onSmartCardStatusUpdate(const RetriableError status) = 0;
+    virtual void onEidContainerStatusUpdate(const RetriableError status) = 0;
     virtual void onMultipleCertificatesReady(
-        const QUrl& origin, const std::vector<CardCertificateAndPinInfo>& cardCertAndPinInfos) = 0;
-    virtual void onSingleCertificateReady(const QUrl& origin,
-                                          const CardCertificateAndPinInfo& cardCertAndPinInfo) = 0;
+        const QUrl& origin,
+        const std::vector<EidContainerCertificateAndPinInfo>& eidContainerCertAndPinInfos) = 0;
+    virtual void onSingleCertificateReady(
+        const QUrl& origin,
+        const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo) = 0;
 
     virtual void onRetry(const RetriableError error) = 0;
 

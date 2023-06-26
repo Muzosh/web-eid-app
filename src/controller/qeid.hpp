@@ -27,6 +27,10 @@
 #include <QMetaType>
 
 Q_DECLARE_METATYPE(electronic_id::AutoSelectFailed::Reason)
+Q_DECLARE_METATYPE(electronic_id::EidContainerInfo::ptr)
 Q_DECLARE_METATYPE(electronic_id::CardInfo::ptr)
+Q_DECLARE_METATYPE(electronic_id::SerialDeviceInfo::ptr)
+Q_DECLARE_METATYPE(std::vector<electronic_id::EidContainerInfo::ptr>)
 Q_DECLARE_METATYPE(std::vector<electronic_id::CardInfo::ptr>)
+Q_DECLARE_METATYPE(std::vector<electronic_id::SerialDeviceInfo::ptr>)
 Q_DECLARE_METATYPE(electronic_id::VerifyPinFailed::Status)

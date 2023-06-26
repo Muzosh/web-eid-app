@@ -122,7 +122,8 @@ CommandWithArgumentsPtr Application::parseArgs()
     parser.setApplicationDescription(QStringLiteral(
         "Application that communicates with the Web eID browser extension via standard input and "
         "output, but also works standalone in command-line mode. Performs PKI cryptographic "
-        "operations with eID smart cards for signing and authentication purposes."));
+        "operations with eID containers (smart cards or serial devices) for signing and "
+        "authentication purposes."));
 
     parser.addHelpOption();
     parser.addOptions({{{"c", "command-line-mode"},
@@ -170,12 +171,16 @@ CommandWithArgumentsPtr Application::parseArgs()
 void Application::registerMetatypes()
 {
     qRegisterMetaType<electronic_id::AutoSelectFailed::Reason>();
+    qRegisterMetaType<electronic_id::EidContainerInfo::ptr>();
     qRegisterMetaType<electronic_id::CardInfo::ptr>();
+    qRegisterMetaType<electronic_id::SerialDeviceInfo::ptr>();
+    qRegisterMetaType<std::vector<electronic_id::EidContainerInfo::ptr>>();
     qRegisterMetaType<std::vector<electronic_id::CardInfo::ptr>>();
+    qRegisterMetaType<std::vector<electronic_id::SerialDeviceInfo::ptr>>();
     qRegisterMetaType<electronic_id::VerifyPinFailed::Status>();
 
-    qRegisterMetaType<CardCertificateAndPinInfo>();
-    qRegisterMetaType<std::vector<CardCertificateAndPinInfo>>();
+    qRegisterMetaType<EidContainerCertificateAndPinInfo>();
+    qRegisterMetaType<std::vector<EidContainerCertificateAndPinInfo>>();
 
     qRegisterMetaType<RetriableError>();
 }

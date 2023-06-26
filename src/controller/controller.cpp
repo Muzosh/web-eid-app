@@ -22,10 +22,10 @@
 
 #include "controller.hpp"
 
-#include "threads/cardeventmonitorthread.hpp"
+#include "threads/eidcontainereventmonitorthread.hpp"
 #include "threads/commandhandlerconfirmthread.hpp"
 #include "threads/commandhandlerrunthread.hpp"
-#include "threads/waitforcardthread.hpp"
+#include "threads/waitforeidcontainerthread.hpp"
 
 #include "utils/utils.hpp"
 #include "inputoutputmode.hpp"
@@ -113,19 +113,20 @@ void Controller::startCommandExecution()
     REQUIRE_NON_NULL(commandHandler)
 
     // Reader monitor thread setup.
-    WaitForCardThread* waitForCardThread = new WaitForCardThread(this);
-    connect(waitForCardThread, &WaitForCardThread::statusUpdate, this, &Controller::statusUpdate);
-    connect(waitForCardThread, &WaitForCardThread::cardsAvailable, this,
-            &Controller::onCardsAvailable);
-    saveChildThreadPtrAndConnectFailureFinish(waitForCardThread);
+    WaitForEidContainerThread* waitForEidContainerThread = new WaitForEidContainerThread(this);
+    connect(waitForEidContainerThread, &WaitForEidContainerThread::statusUpdate, this,
+            &Controller::statusUpdate);
+    connect(waitForEidContainerThread, &WaitForEidContainerThread::eidContainersAvailable, this,
+            &Controller::onEidContainersAvailable);
+    saveChildThreadPtrAndConnectFailureFinish(waitForEidContainerThread);
 
     // UI setup.
     window = WebEidUI::createAndShowDialog(commandHandler->commandType());
-    connect(this, &Controller::statusUpdate, window, &WebEidUI::onSmartCardStatusUpdate);
+    connect(this, &Controller::statusUpdate, window, &WebEidUI::onEidContainerStatusUpdate);
     connectOkCancelWaitingForPinPad();
 
-    // Finally, start the thread to wait for card insertion after everything is wired up.
-    waitForCardThread->start();
+    // Finally, start the thread to wait for eid container insertion after everything is wired up.
+    waitForEidContainerThread->start();
 }
 
 void Controller::saveChildThreadPtrAndConnectFailureFinish(ControllerChildThread* childThread)
@@ -165,41 +166,57 @@ void Controller::connectOkCancelWaitingForPinPad()
     connect(window, &WebEidUI::waitingForPinPad, this, &Controller::onConfirmCommandHandler);
 }
 
-void Controller::onCardsAvailable(const std::vector<electronic_id::CardInfo::ptr>& availableCards)
+void Controller::onEidContainersAvailable(
+    const std::vector<electronic_id::EidContainerInfo::ptr>& eidContainers)
 {
     try {
         REQUIRE_NON_NULL(commandHandler)
         REQUIRE_NON_NULL(window)
-        REQUIRE_NOT_EMPTY_CONTAINS_NON_NULL_PTRS(availableCards)
+        REQUIRE_NOT_EMPTY_CONTAINS_NON_NULL_PTRS(eidContainers)
 
-        for (const auto& card : availableCards) {
-            const auto protocol =
-                card->eid().smartcard().protocol() == SmartCard::Protocol::T0 ? "T=0" : "T=1";
-            qInfo() << "Card" << card->eid().name() << "in reader" << card->reader().name
-                    << "using protocol" << protocol;
+        for (const auto& eidContainerInfo : eidContainers) {
+            if (eidContainerInfo->containerType() == EidContainerInfo::ContainerType::CardInfo) {
+                const CardInfo::ptr cardInfo =
+                    std::dynamic_pointer_cast<CardInfo>(eidContainerInfo);
+
+                const auto protocol =
+                    cardInfo->eid().smartcard().protocol() == SmartCard::Protocol::T0 ? "T=0"
+                                                                                      : "T=1";
+                qInfo() << "Card" << cardInfo->eid().name() << "in reader"
+                        << cardInfo->reader().name << "using protocol" << protocol;
+            } else if (eidContainerInfo->containerType()
+                       == EidContainerInfo::ContainerType::SerialDeviceInfo) {
+                const SerialDeviceInfo::ptr serialDeviceInfo =
+                    std::dynamic_pointer_cast<SerialDeviceInfo>(eidContainerInfo);
+
+                qInfo() << "Serial device " << serialDeviceInfo->eid().name() << "in port "
+                        << serialDeviceInfo->serialPort().qPortInfo.systemLocation().toStdString();
+            }
         }
 
-        window->showWaitingForCardPage(commandHandler->commandType());
+        window->showWaitingForEidContainerPage(commandHandler->commandType());
 
         commandHandler->connectSignals(window);
 
-        runCommandHandler(availableCards);
+        runCommandHandler(eidContainers);
 
     } catch (const std::exception& error) {
         onCriticalFailure(error.what());
     }
 }
 
-void Controller::runCommandHandler(const std::vector<electronic_id::CardInfo::ptr>& availableCards)
+void Controller::runCommandHandler(
+    const std::vector<electronic_id::EidContainerInfo::ptr>& availableEidContainers)
 {
     try {
         CommandHandlerRunThread* commandHandlerRunThread =
-            new CommandHandlerRunThread(this, *commandHandler, availableCards);
+            new CommandHandlerRunThread(this, *commandHandler, availableEidContainers);
         saveChildThreadPtrAndConnectFailureFinish(commandHandlerRunThread);
         connectRetry(commandHandlerRunThread);
 
         // When the command handler run thread retrieves certificates successfully, call
-        // onCertificatesLoaded() that starts card event monitoring while user enters the PIN.
+        // onCertificatesLoaded() that starts eid container event monitoring while user enters the
+        // PIN.
         connect(commandHandler.get(), &CommandHandler::singleCertificateReady, this,
                 &Controller::onCertificatesLoaded);
         connect(commandHandler.get(), &CommandHandler::multipleCertificatesReady, this,
@@ -214,27 +231,30 @@ void Controller::runCommandHandler(const std::vector<electronic_id::CardInfo::pt
 
 void Controller::onCertificatesLoaded()
 {
-    CardEventMonitorThread* cardEventMonitorThread =
-        new CardEventMonitorThread(this, std::string(commandType()));
-    saveChildThreadPtrAndConnectFailureFinish(cardEventMonitorThread);
-    cardEventMonitorThreadKey = uintptr_t(cardEventMonitorThread);
-    connect(cardEventMonitorThread, &CardEventMonitorThread::cardEvent, this, &Controller::onRetry);
-    cardEventMonitorThread->start();
+    EidContainerEventMonitorThread* eidContainerEventMonitorThread =
+        new EidContainerEventMonitorThread(this, std::string(commandType()));
+    saveChildThreadPtrAndConnectFailureFinish(eidContainerEventMonitorThread);
+    eidContainerEventMonitorThreadKey = uintptr_t(eidContainerEventMonitorThread);
+    connect(eidContainerEventMonitorThread, &EidContainerEventMonitorThread::eidContainerEvent,
+            this, &Controller::onRetry);
+    eidContainerEventMonitorThread->start();
 }
 
-void Controller::stopCardEventMonitorThread()
+void Controller::stopEidContainerEventMonitorThread()
 {
-    if (cardEventMonitorThreadKey) {
+    if (eidContainerEventMonitorThreadKey) {
         try {
-            auto cardEventMonitorThread = childThreads.at(cardEventMonitorThreadKey);
-            cardEventMonitorThreadKey = 0;
-            if (cardEventMonitorThread) {
-                interruptThread(cardEventMonitorThread);
+            auto eidContainerEventMonitorThread =
+                childThreads.at(eidContainerEventMonitorThreadKey);
+            eidContainerEventMonitorThreadKey = 0;
+            if (eidContainerEventMonitorThread) {
+                interruptThread(eidContainerEventMonitorThread);
             }
         } catch (const std::out_of_range&) {
-            qWarning() << "Card event monitor thread" << cardEventMonitorThreadKey
-                       << "is missing from childThreads map in stopCardEventMonitorThread()";
-            cardEventMonitorThreadKey = 0;
+            qWarning()
+                << "EidContainer event monitor thread" << eidContainerEventMonitorThreadKey
+                << "is missing from childThreads map in stopEidContainerEventMonitorThread()";
+            eidContainerEventMonitorThreadKey = 0;
         }
     }
 }
@@ -249,13 +269,14 @@ void Controller::disposeUI()
     }
 }
 
-void Controller::onConfirmCommandHandler(const CardCertificateAndPinInfo& cardCertAndPinInfo)
+void Controller::onConfirmCommandHandler(
+    const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo)
 {
-    stopCardEventMonitorThread();
+    stopEidContainerEventMonitorThread();
 
     try {
-        CommandHandlerConfirmThread* commandHandlerConfirmThread =
-            new CommandHandlerConfirmThread(this, *commandHandler, window, cardCertAndPinInfo);
+        CommandHandlerConfirmThread* commandHandlerConfirmThread = new CommandHandlerConfirmThread(
+            this, *commandHandler, window, eidContainerCertAndPinInfo);
         connect(commandHandlerConfirmThread, &CommandHandlerConfirmThread::completed, this,
                 &Controller::onCommandHandlerConfirmCompleted);
         saveChildThreadPtrAndConnectFailureFinish(commandHandlerConfirmThread);
@@ -319,10 +340,10 @@ void Controller::connectRetry(const ControllerChildThread* childThread)
     connect(window, &WebEidUI::retry, this, &Controller::onRetry);
 }
 
-void Controller::onDialogOK(const CardCertificateAndPinInfo& cardCertAndPinInfo)
+void Controller::onDialogOK(const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo)
 {
     if (commandHandler) {
-        onConfirmCommandHandler(cardCertAndPinInfo);
+        onConfirmCommandHandler(eidContainerCertAndPinInfo);
     } else {
         // This should not happen, and when it does, OK should be equivalent to cancel.
         onPinPadCancel();
@@ -391,5 +412,6 @@ void Controller::waitForChildThreads()
 
 CommandType Controller::commandType()
 {
-    return commandHandler ? commandHandler->commandType() : CommandType(CommandType::INSERT_CARD);
+    return commandHandler ? commandHandler->commandType()
+                          : CommandType(CommandType::INSERT_EID_CONTAINER);
 }

@@ -37,6 +37,8 @@ enum class RetriableError {
     SMART_CARD_WAS_REMOVED,
     SMART_CARD_TRANSACTION_FAILED,
     SCARD_ERROR,
+    // libserial-cpp
+    NO_SERIAL_DEVICES_FOUND,
     // libelectronic-id
     SMART_CARD_CHANGE_REQUIRED,
     SMART_CARD_COMMAND_ERROR,
@@ -61,31 +63,31 @@ RetriableError toRetriableError(const electronic_id::AutoSelectFailed::Reason re
 // Define retriable error handling in one place so that it can be reused.
 
 #define CATCH_PCSC_CPP_RETRIABLE_ERRORS(ERROR_HANDLER)                                             \
-    catch (const pcsc_cpp::ScardServiceNotRunningError& error)                                     \
+    catch (const pcsc_cpp::SCardServiceNotRunningError& error)                                     \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::SMART_CARD_SERVICE_IS_NOT_RUNNING, error);                   \
     }                                                                                              \
-    catch (const pcsc_cpp::ScardNoReadersError& error)                                             \
+    catch (const pcsc_cpp::SCardNoReadersError& error)                                             \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::NO_SMART_CARD_READERS_FOUND, error);                         \
     }                                                                                              \
-    catch (const pcsc_cpp::ScardNoCardError& error)                                                \
+    catch (const pcsc_cpp::SCardNoCardError& error)                                                \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::NO_SMART_CARDS_FOUND, error);                                \
     }                                                                                              \
-    catch (const pcsc_cpp::ScardCardCommunicationFailedError& error)                               \
+    catch (const pcsc_cpp::SCardCardCommunicationFailedError& error)                               \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::FAILED_TO_COMMUNICATE_WITH_CARD_OR_READER, error);           \
     }                                                                                              \
-    catch (const pcsc_cpp::ScardCardRemovedError& error)                                           \
+    catch (const pcsc_cpp::SCardCardRemovedError& error)                                           \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::SMART_CARD_WAS_REMOVED, error);                              \
     }                                                                                              \
-    catch (const pcsc_cpp::ScardTransactionFailedError& error)                                     \
+    catch (const pcsc_cpp::SCardTransactionFailedError& error)                                     \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::SMART_CARD_TRANSACTION_FAILED, error);                       \
     }                                                                                              \
-    catch (const pcsc_cpp::ScardError& error)                                                      \
+    catch (const pcsc_cpp::SCardError& error)                                                      \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::SCARD_ERROR, error);                                         \
     }
@@ -96,6 +98,10 @@ RetriableError toRetriableError(const electronic_id::AutoSelectFailed::Reason re
         ERROR_HANDLER(RetriableError::SMART_CARD_CHANGE_REQUIRED, error);                          \
     }                                                                                              \
     catch (const electronic_id::SmartCardError& error)                                             \
+    {                                                                                              \
+        ERROR_HANDLER(RetriableError::SMART_CARD_COMMAND_ERROR, error);                            \
+    }                                                                                              \
+    catch (const electronic_id::SerialDeviceError& error)                                          \
     {                                                                                              \
         ERROR_HANDLER(RetriableError::SMART_CARD_COMMAND_ERROR, error);                            \
     }                                                                                              \

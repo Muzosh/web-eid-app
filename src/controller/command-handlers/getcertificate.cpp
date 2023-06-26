@@ -46,13 +46,14 @@ GetCertificate::GetCertificate(const CommandWithArguments& cmd) : CertificateRea
     requireArgumentsAndOptionalLang({"origin"}, arguments, "\"origin\": \"<origin URL>\"");
 }
 
-QVariantMap GetCertificate::onConfirm(WebEidUI* /* window */,
-                                      const CardCertificateAndPinInfo& cardCertAndPin)
+QVariantMap
+GetCertificate::onConfirm(WebEidUI* /* window */,
+                          const EidContainerCertificateAndPinInfo& eidContainerCertAndPin)
 {
     // Quoting https://tools.ietf.org/html/rfc7515#section-4.1.6:
     // Each string in the array is a Base64-encoded (Section 4 of [RFC4648] -- not
     // Base64url-encoded) DER [ITU.X690.2008] PKIX certificate value.
-    auto certPem = cardCertAndPin.certificateBytesInDer.toBase64();
-    auto algos = supportedSigningAlgos(cardCertAndPin.cardInfo->eid());
+    auto certPem = eidContainerCertAndPin.certificateBytesInDer.toBase64();
+    auto algos = supportedSigningAlgos(eidContainerCertAndPin.eidContainerInfo->eid());
     return {{"certificate", QString(certPem)}, {"supportedSignatureAlgorithms", algos}};
 }

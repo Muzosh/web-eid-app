@@ -24,12 +24,12 @@ add_library(controller STATIC
     qeid.hpp
     retriableerror.cpp
     retriableerror.hpp
-    threads/cardeventmonitorthread.hpp
+    threads/eidcontainereventmonitorthread.hpp
     threads/commandhandlerconfirmthread.hpp
     threads/commandhandlerrunthread.hpp
     threads/controllerchildthread.cpp
     threads/controllerchildthread.hpp
-    threads/waitforcardthread.hpp
+    threads/waitforeidcontainerthread.hpp
     ui.hpp
     utils/observer_ptr.hpp
     utils/qdisablecopymove.hpp

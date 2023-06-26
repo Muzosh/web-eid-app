@@ -27,7 +27,7 @@
 #include <unordered_map>
 
 class ControllerChildThread;
-class CardEventMonitorThread;
+class EidContainerEventMonitorThread;
 
 /** Controller coordinates the execution flow and interaction between all other components. */
 class Controller : public QObject
@@ -46,14 +46,17 @@ signals:
 public: // slots
     void run();
 
-    // Called either directly from run() or from the monitor thread when cards are available.
-    void onCardsAvailable(const std::vector<electronic_id::CardInfo::ptr>& availableCards);
+    // Called either directly from run() or from the monitor thread when eid containers are
+    // available.
+    void onEidContainersAvailable(
+        const std::vector<electronic_id::EidContainerInfo::ptr>& eidContainers);
 
     // Called when CommandHandlerRunThread finishes execution.
     void onCertificatesLoaded();
 
     // Called either directly from onDialogOK().
-    void onConfirmCommandHandler(const CardCertificateAndPinInfo& cardCertAndPinInfo);
+    void
+    onConfirmCommandHandler(const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo);
 
     // Called from CommandHandlerConfirm thread.
     void onCommandHandlerConfirmCompleted(const QVariantMap& result);
@@ -62,7 +65,7 @@ public: // slots
     void onRetry();
 
     // User events from the dialog.
-    void onDialogOK(const CardCertificateAndPinInfo& cardCertAndPinInfo);
+    void onDialogOK(const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo);
     void onDialogCancel();
 
     // Called when user presses cancel on PIN pad.
@@ -73,11 +76,12 @@ public: // slots
 
 private:
     void startCommandExecution();
-    void runCommandHandler(const std::vector<electronic_id::CardInfo::ptr>& availableCards);
+    void runCommandHandler(
+        const std::vector<electronic_id::EidContainerInfo::ptr>& availableEidContainers);
     void connectOkCancelWaitingForPinPad();
     void connectRetry(const ControllerChildThread* childThread);
     void saveChildThreadPtrAndConnectFailureFinish(ControllerChildThread* childThread);
-    void stopCardEventMonitorThread();
+    void stopEidContainerEventMonitorThread();
     void disposeUI();
     void exit();
     void waitForChildThreads();
@@ -86,8 +90,8 @@ private:
     CommandWithArgumentsPtr command;
     CommandHandler::ptr commandHandler = nullptr;
     std::unordered_map<uintptr_t, observer_ptr<ControllerChildThread>> childThreads;
-    // Key of card event monitor thread in childThreads map.
-    uintptr_t cardEventMonitorThreadKey = 0;
+    // Key of eid container event monitor thread in childThreads map.
+    uintptr_t eidContainerEventMonitorThreadKey = 0;
     // As the Qt::WA_DeleteOnClose flag is set, the dialog is deleted automatically.
     observer_ptr<WebEidUI> window = nullptr;
     QVariantMap _result;

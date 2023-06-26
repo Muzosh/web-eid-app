@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2023 Estonian Information System Authority
+ * Copyright (c) 2020-2022 Estonian Information System Authority
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,10 +78,10 @@ inline void eraseData(T& data)
     }
 }
 
-pcsc_cpp::byte_vector getPin(const pcsc_cpp::SmartCard& card, WebEidUI* window)
+electronic_id::byte_vector getPin(bool hasPinPad, WebEidUI* window)
 {
     // Doesn't apply to PIN pads.
-    if (card.readerHasPinPad()) {
+    if (hasPinPad) {
         return {};
     }
 
@@ -94,7 +94,7 @@ pcsc_cpp::byte_vector getPin(const pcsc_cpp::SmartCard& card, WebEidUI* window)
 
     // TODO: Avoid making copies of the PIN in memory.
     auto pinQByteArray = pin.toUtf8();
-    auto pinBytes = pcsc_cpp::byte_vector {pinQByteArray.begin(), pinQByteArray.end()};
+    auto pinBytes = electronic_id::byte_vector {pinQByteArray.begin(), pinQByteArray.end()};
 
     // TODO: Verify that the buffers are actually zeroed and no copies remain.
     eraseData<QString, QChar>(pin);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Estonian Information System Authority
+ * Copyright (c) 2021-2022 Estonian Information System Authority
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,16 +23,16 @@
 #pragma once
 
 #include "controllerchildthread.hpp"
+#include "electronic-id/electronic-id.hpp"
 
-class CardEventMonitorThread : public ControllerChildThread
+class EidContainerEventMonitorThread : public ControllerChildThread
 {
     Q_OBJECT
 
 public:
-    using card_ptr = electronic_id::CardInfo::ptr;
-    using card_ptr_vector = std::vector<electronic_id::CardInfo::ptr>;
+    using std_string_set = std::set<std::string>;
 
-    CardEventMonitorThread(QObject* parent, const std::string& commandType) :
+    EidContainerEventMonitorThread(QObject* parent, const std::string& commandType) :
         ControllerChildThread(parent), cmdType(commandType)
     {
     }
@@ -43,20 +43,28 @@ public:
 
         beforeRun();
 
-        auto initialCards = getSupportedCardsIgnoringExceptions();
-        sortByReaderNameAndAtr(initialCards);
+        std_string_set initialEidContainerNames = getInitialEidContainerNames();
 
         while (!isInterruptionRequested()) {
 
             waitForControllerNotify.wait(&controllerChildThreadMutex, ONE_SECOND);
 
-            card_ptr_vector updatedCards {};
+            std_string_set updatedEidContainers {};
 
             try {
-                updatedCards = electronic_id::availableSupportedCards();
-                sortByReaderNameAndAtr(updatedCards);
+                // Get available eid containers
+                std::vector<electronic_id::EidContainerInfo::ptr> eidInfos =
+                    electronic_id::availableSupportedEidContainers();
+
+                // Extract just the names of the eid containers
+                std::transform(eidInfos.begin(), eidInfos.end(),
+                               std::inserter(updatedEidContainers, updatedEidContainers.end()),
+                               [](const electronic_id::EidContainerInfo::ptr& eidInfo) {
+                                   return eidInfo->eidContainerInfoName();
+                               });
             } catch (const std::exception& error) {
-                // Ignore smart card layer errors, they will be handled during next card operation.
+                // Ignore eid container layer errors, they will be handled during next eid container
+                // operation.
                 qWarning() << className << "ignoring" << commandType() << "error:" << error;
             }
 
@@ -65,17 +73,18 @@ public:
                 return;
             }
 
-            // If there was a change in connected supported cards, exit after emitting a card event.
-            if (!areEqualByReaderNameAndAtr(initialCards, updatedCards)) {
-                qDebug() << className << "card change detected";
-                emit cardEvent();
+            // If there was a change in connected supported eid containers, exit after emitting a
+            // eid container event.
+            if (!areEqualByName(initialEidContainerNames, updatedEidContainers)) {
+                qDebug() << className << "eid container change detected";
+                emit eidContainerEvent();
                 return;
             }
         }
     }
 
 signals:
-    void cardEvent();
+    void eidContainerEvent();
 
 private:
     void doRun() override
@@ -83,13 +92,27 @@ private:
         // Unused as run() has been overriden.
     }
 
-    card_ptr_vector getSupportedCardsIgnoringExceptions()
+    std_string_set getInitialEidContainerNames()
     {
         while (!isInterruptionRequested()) {
             try {
-                return electronic_id::availableSupportedCards();
+                std_string_set eidContainerInfoNames;
+
+                // Get available eid containers.
+                std::vector<electronic_id::EidContainerInfo::ptr> eidInfos =
+                    electronic_id::availableSupportedEidContainers();
+
+                // Extract just the names of the eid containers
+                std::transform(eidInfos.begin(), eidInfos.end(),
+                               std::inserter(eidContainerInfoNames, eidContainerInfoNames.end()),
+                               [](const electronic_id::EidContainerInfo::ptr& eidInfo) {
+                                   return eidInfo->eidContainerInfoName();
+                               });
+
+                return eidContainerInfoNames;
             } catch (const std::exception& error) {
-                // Ignore smart card layer errors, they will be handled during next card operation.
+                // Ignore eid containers layer errors, they will be handled during next eid
+                // container operation.
                 qWarning() << className << "ignoring" << commandType() << "error:" << error;
             }
             waitForControllerNotify.wait(&controllerChildThreadMutex, ONE_SECOND);
@@ -98,25 +121,10 @@ private:
         return {};
     }
 
-    void sortByReaderNameAndAtr(card_ptr_vector& a)
-    {
-        std::sort(a.begin(), a.end(), [](const card_ptr& c1, const card_ptr& c2) {
-            if (c1->reader().name != c2->reader().name) {
-                return c1->reader().name < c2->reader().name;
-            }
-            return c1->reader().cardAtr < c2->reader().cardAtr;
-        });
-    }
-
-    bool areEqualByReaderNameAndAtr(const card_ptr_vector& a, const card_ptr_vector& b)
+    bool areEqualByName(const std_string_set& a, const std_string_set& b)
     {
         // std::equal requires that second range is not shorter than first, so compare size first.
-        return a.size() == b.size()
-            && std::equal(a.cbegin(), a.cend(), b.cbegin(),
-                          [](const card_ptr& c1, const card_ptr& c2) {
-                              return c1->reader().name == c2->reader().name
-                                  && c1->reader().cardAtr == c2->reader().cardAtr;
-                          });
+        return a.size() == b.size() && a == b;
     }
 
     const std::string& commandType() const override { return cmdType; }

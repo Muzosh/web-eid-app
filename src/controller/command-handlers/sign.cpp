@@ -30,10 +30,10 @@ using namespace electronic_id;
 namespace
 {
 
-QPair<QString, QVariantMap> signHash(const ElectronicID& eid, const pcsc_cpp::byte_vector& pin,
+QPair<QString, QVariantMap> signHash(const ElectronicID& eid, const electronic_id::byte_vector& pin,
                                      const QByteArray& docHash, const HashAlgorithm hashAlgo)
 {
-    const auto hashBytes = pcsc_cpp::byte_vector {docHash.begin(), docHash.end()};
+    const auto hashBytes = electronic_id::byte_vector {docHash.begin(), docHash.end()};
     const auto signature = eid.signWithSigningKey(pin, hashBytes, hashAlgo);
 
     const auto signatureBase64 =
@@ -67,38 +67,52 @@ Sign::Sign(const CommandWithArguments& cmd) : CertificateReader(cmd)
     validateAndStoreOrigin(arguments);
 }
 
-void Sign::emitCertificatesReady(const std::vector<CardCertificateAndPinInfo>& cardCertAndPinInfos)
+void Sign::emitCertificatesReady(
+    const std::vector<EidContainerCertificateAndPinInfo>& eidContainerCertAndPinInfos)
 {
-    const CardCertificateAndPinInfo* cardWithCertificateFromArgs = nullptr;
+    const EidContainerCertificateAndPinInfo* eidContainerWithCertificateFromArgs = nullptr;
 
-    for (const auto& cardCertAndPin : cardCertAndPinInfos) {
+    for (const auto& eidContainerCertAndPin : eidContainerCertAndPinInfos) {
         // Check if the certificate read from the eID matches the certificate provided as argument.
-        if (cardCertAndPin.certificate.toDer() == userEidCertificateFromArgs) {
-            cardWithCertificateFromArgs = &cardCertAndPin;
+        if (eidContainerCertAndPin.certificate.toDer() == userEidCertificateFromArgs) {
+            eidContainerWithCertificateFromArgs = &eidContainerCertAndPin;
         }
     }
 
     // No eID had the certificate provided as argument.
-    if (!cardWithCertificateFromArgs) {
+    if (!eidContainerWithCertificateFromArgs) {
         emit signingCertificateMismatch();
         return;
     }
 
-    if (!cardWithCertificateFromArgs->cardInfo->eid().isSupportedSigningHashAlgorithm(hashAlgo)) {
+    if (!eidContainerWithCertificateFromArgs->eidContainerInfo->eid()
+             .isSupportedSigningHashAlgorithm(hashAlgo)) {
         THROW(ArgumentFatalError,
-              "Electronic ID " + cardWithCertificateFromArgs->cardInfo->eid().name()
+              "Electronic ID " + eidContainerWithCertificateFromArgs->eidContainerInfo->eid().name()
                   + " does not support hash algorithm " + std::string(hashAlgo));
     }
 
-    emit singleCertificateReady(origin, *cardWithCertificateFromArgs);
+    emit singleCertificateReady(origin, *eidContainerWithCertificateFromArgs);
 }
 
-QVariantMap Sign::onConfirm(WebEidUI* window, const CardCertificateAndPinInfo& cardCertAndPin)
+QVariantMap Sign::onConfirm(WebEidUI* window,
+                            const EidContainerCertificateAndPinInfo& eidContainerCertAndPin)
 {
-    auto pin = getPin(cardCertAndPin.cardInfo->eid().smartcard(), window);
+    bool hasPinPad = (eidContainerCertAndPin.eidContainerInfo->containerType()
+                      == EidContainerInfo::ContainerType::CardInfo)
+        ? std::dynamic_pointer_cast<CardInfo>(eidContainerCertAndPin.eidContainerInfo)
+              ->eid()
+              .smartcard()
+              .readerHasPinPad()
+        : std::dynamic_pointer_cast<SerialDeviceInfo>(eidContainerCertAndPin.eidContainerInfo)
+              ->serialPort()
+              .hasPinPad;
+
+    auto pin = getPin(hasPinPad, window);
 
     try {
-        const auto signature = signHash(cardCertAndPin.cardInfo->eid(), pin, docHash, hashAlgo);
+        const auto signature =
+            signHash(eidContainerCertAndPin.eidContainerInfo->eid(), pin, docHash, hashAlgo);
 
         // Erase PIN memory.
         // TODO: Use a scope guard. Verify that the buffers are actually zeroed
