@@ -49,7 +49,7 @@ namespace
 CertificateInfo getCertAndPinInfoFromSignalSpy(const QSignalSpy& certificateReadySpy)
 {
     const auto certInfosArgument =
-        qvariant_cast<CardCertificateAndPinInfo>(certificateReadySpy.first().at(1));
+        qvariant_cast<EidContainerCertificateAndPinInfo>(certificateReadySpy.first().at(1));
     return certInfosArgument.certInfo;
 }
 

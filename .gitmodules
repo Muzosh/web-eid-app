@@ -1,6 +1,7 @@
-[submodule "lib/libelectronic-id"]
-	path = lib/libelectronic-id
-	url = ../libelectronic-id
 [submodule "src/mac/js"]
 	path = src/mac/js
-	url = ../web-eid-webextension
+	url = https://github.com/web-eid/web-eid-webextension
+[submodule "lib/libelectronic-id"]
+	path = lib/libelectronic-id
+	url = https://github.com/Muzosh/libelectronic-id.git
+	branch = feature-abstraction-layer-and-InfinitEIDPQ
