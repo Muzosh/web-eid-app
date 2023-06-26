@@ -70,7 +70,7 @@ CertificateWidgetInfo::CertificateWidgetInfo(QWidget* self) :
     layout->addItem(warnLayout);
 }
 
-CardCertificateAndPinInfo CertificateWidgetInfo::certificateInfo() const
+EidContainerCertificateAndPinInfo CertificateWidgetInfo::certificateInfo() const
 {
     return certAndPinInfo;
 }
@@ -87,11 +87,12 @@ void CertificateWidgetInfo::drawWarnIcon()
 #endif
 }
 
-void CertificateWidgetInfo::setCertificateInfo(const CardCertificateAndPinInfo& cardCertPinInfo)
+void CertificateWidgetInfo::setCertificateInfo(
+    const EidContainerCertificateAndPinInfo& eidContainerCertPinInfo)
 {
     warn->setText(CertificateWidget::tr("Pin locked"));
-    certAndPinInfo = cardCertPinInfo;
-    const auto certInfo = cardCertPinInfo.certInfo;
+    certAndPinInfo = eidContainerCertPinInfo;
+    const auto certInfo = eidContainerCertPinInfo.certInfo;
     QString warning, effectiveDate = certInfo.effectiveDate, expiryDate = certInfo.expiryDate;
     if (certInfo.notEffective) {
         effectiveDate = displayInRed(effectiveDate);
@@ -104,8 +105,8 @@ void CertificateWidgetInfo::setCertificateInfo(const CardCertificateAndPinInfo& 
     info->setText(CertificateWidget::tr("<b>%1</b><br />Issuer: %2<br />Valid: %3 to %4%5")
                       .arg(certInfo.subject, certInfo.issuer, effectiveDate, expiryDate, warning));
     info->parentWidget()->setDisabled(certInfo.notEffective || certInfo.isExpired
-                                      || cardCertPinInfo.pinInfo.pinIsBlocked);
-    if (warning.isEmpty() && cardCertPinInfo.pinInfo.pinIsBlocked) {
+                                      || eidContainerCertPinInfo.pinInfo.pinIsBlocked);
+    if (warning.isEmpty() && eidContainerCertPinInfo.pinInfo.pinIsBlocked) {
         warnIcon->show();
         warn->show();
     }
@@ -139,8 +140,8 @@ void CertificateWidget::paintEvent(QPaintEvent* /*event*/)
     style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
 }
 
-CertificateButton::CertificateButton(const CardCertificateAndPinInfo& cardCertPinInfo,
-                                     QWidget* parent) :
+CertificateButton::CertificateButton(
+    const EidContainerCertificateAndPinInfo& eidContainerCertPinInfo, QWidget* parent) :
     QAbstractButton(parent),
     CertificateWidgetInfo(this)
 {
@@ -148,7 +149,7 @@ CertificateButton::CertificateButton(const CardCertificateAndPinInfo& cardCertPi
     setAutoExclusive(true);
     CertificateWidgetInfo::icon->setAttribute(Qt::WA_TransparentForMouseEvents);
     info->setAttribute(Qt::WA_TransparentForMouseEvents);
-    setCertificateInfo(cardCertPinInfo);
+    setCertificateInfo(eidContainerCertPinInfo);
 }
 
 bool CertificateButton::eventFilter(QObject* object, QEvent* event)
@@ -160,10 +161,11 @@ bool CertificateButton::eventFilter(QObject* object, QEvent* event)
     return QAbstractButton::eventFilter(object, event);
 }
 
-void CertificateButton::setCertificateInfo(const CardCertificateAndPinInfo& cardCertPinInfo)
+void CertificateButton::setCertificateInfo(
+    const EidContainerCertificateAndPinInfo& eidContainerCertPinInfo)
 {
-    CertificateWidgetInfo::setCertificateInfo(cardCertPinInfo);
-    const auto certInfo = cardCertPinInfo.certInfo;
+    CertificateWidgetInfo::setCertificateInfo(eidContainerCertPinInfo);
+    const auto certInfo = eidContainerCertPinInfo.certInfo;
     setText(
         tr("%1 Issuer: %2 Valid: %3 to %4")
             .arg(certInfo.subject, certInfo.issuer, certInfo.effectiveDate, certInfo.expiryDate));

@@ -48,19 +48,20 @@ public:
     explicit WebEidDialog(QWidget* parent = nullptr);
     ~WebEidDialog() final;
 
-    void showWaitingForCardPage(const CommandType commandType) final;
+    void showWaitingForEidContainerPage(const CommandType commandType) final;
     QString getPin() final;
 
     static void showAboutPage();
     static void showFatalErrorPage();
 
     // slots
-    void onSmartCardStatusUpdate(const RetriableError status) final;
+    void onEidContainerStatusUpdate(const RetriableError status) final;
     void onMultipleCertificatesReady(
         const QUrl& origin,
-        const std::vector<CardCertificateAndPinInfo>& cardCertAndPinInfos) final;
-    void onSingleCertificateReady(const QUrl& origin,
-                                  const CardCertificateAndPinInfo& cardCertAndPinInfo) final;
+        const std::vector<EidContainerCertificateAndPinInfo>& eidContainerCertAndPinInfos) final;
+    void onSingleCertificateReady(
+        const QUrl& origin,
+        const EidContainerCertificateAndPinInfo& eidContainerCertAndPinInfo) final;
 
     void onRetry(const RetriableError error) final;
 
@@ -90,17 +91,18 @@ private:
         }
     }
 
-    void connectOkToCachePinAndEmitSelectedCertificate(const CardCertificateAndPinInfo& certAndPin);
+    void connectOkToCachePinAndEmitSelectedCertificate(
+        const EidContainerCertificateAndPinInfo& certAndPin);
 
     template <typename Text>
     void onRetryImpl(Text text);
     template <typename Text>
     void setTrText(QWidget* label, Text text) const;
-    void
-    setupCertificateAndPinInfo(const std::vector<CardCertificateAndPinInfo>& cardCertAndPinInfos);
+    void setupCertificateAndPinInfo(
+        const std::vector<EidContainerCertificateAndPinInfo>& eidContainerCertAndPinInfos);
     void setupPinPrompt(const PinInfo& pinInfo);
-    void setupPinPadProgressBarAndEmitWait(const CardCertificateAndPinInfo& certAndPin);
-    void setupPinInput(const CardCertificateAndPinInfo& certAndPin);
+    void setupPinPadProgressBarAndEmitWait(const EidContainerCertificateAndPinInfo& certAndPin);
+    void setupPinInput(const EidContainerCertificateAndPinInfo& certAndPin);
     template <typename Func>
     void setupOK(Func&& func, const std::function<QString()>& text = {}, bool enabled = false);
     void displayPinBlockedError();

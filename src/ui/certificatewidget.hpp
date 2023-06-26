@@ -33,8 +33,9 @@ class CertificateWidgetInfo
 {
 public:
     virtual ~CertificateWidgetInfo() = default;
-    CardCertificateAndPinInfo certificateInfo() const;
-    virtual void setCertificateInfo(const CardCertificateAndPinInfo& cardCertPinInfo);
+    EidContainerCertificateAndPinInfo certificateInfo() const;
+    virtual void
+    setCertificateInfo(const EidContainerCertificateAndPinInfo& eidContainerCertPinInfo);
     void languageChange();
 
 protected:
@@ -47,7 +48,7 @@ protected:
     QLabel* info;
     QLabel* warnIcon;
     QLabel* warn;
-    CardCertificateAndPinInfo certAndPinInfo;
+    EidContainerCertificateAndPinInfo certAndPinInfo;
 };
 
 class CertificateWidget final : public QWidget, public CertificateWidgetInfo
@@ -67,10 +68,11 @@ class CertificateButton final : public QAbstractButton, public CertificateWidget
     Q_OBJECT
 
 public:
-    CertificateButton(const CardCertificateAndPinInfo& cardCertPinInfo, QWidget* parent);
+    CertificateButton(const EidContainerCertificateAndPinInfo& eidContainerCertPinInfo,
+                      QWidget* parent);
 
 private:
     bool eventFilter(QObject* object, QEvent* event) final;
-    void setCertificateInfo(const CardCertificateAndPinInfo& cardCertPinInfo) final;
+    void setCertificateInfo(const EidContainerCertificateAndPinInfo& eidContainerCertPinInfo) final;
     void paintEvent(QPaintEvent* event) final;
 };
