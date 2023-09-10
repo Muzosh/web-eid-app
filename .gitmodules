@@ -4,4 +4,4 @@
 	branch = feature-InfinitEID
 [submodule "src/mac/js"]
 	path = src/mac/js
-	url = https://github.com/web-eid/web-eid.js
+	url = https://github.com/web-eid/web-eid-webextension
