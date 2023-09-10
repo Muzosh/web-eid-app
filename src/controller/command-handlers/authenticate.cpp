@@ -62,6 +62,7 @@ QByteArray createSignature(const QString& origin, const QString& challengeNonce,
         std::map<JsonWebSignatureAlgorithm, QCryptographicHash::Algorithm> {
             {JsonWebSignatureAlgorithm::RS256, QCryptographicHash::Sha256},
             {JsonWebSignatureAlgorithm::PS256, QCryptographicHash::Sha256},
+            {JsonWebSignatureAlgorithm::ES256, QCryptographicHash::Sha256},
             {JsonWebSignatureAlgorithm::ES384, QCryptographicHash::Sha384},
         };
 

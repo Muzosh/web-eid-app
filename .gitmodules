@@ -1,6 +1,7 @@
 [submodule "lib/libelectronic-id"]
 	path = lib/libelectronic-id
-	url = https://github.com/web-eid/libelectronic-id
+	url = https://github.com/Muzosh/libelectronic-id
+	branch = feature-InfinitEID
 [submodule "src/mac/js"]
 	path = src/mac/js
 	url = https://github.com/web-eid/web-eid.js
